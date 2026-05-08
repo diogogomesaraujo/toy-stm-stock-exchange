@@ -6,7 +6,7 @@
 -- - https://medium.com/@thinhnguyen042002/lets-build-a-stock-exchange-from-scratch-18459611ad83
 --
 
-module OrderBook (TOrderBook, addTOrderBook) where
+module OrderBook (TOrderBook, addTOrderBook, removeTOrderBook, Order, newOrder) where
 
 import TPriorityQueue
 import Control.Concurrent.STM
@@ -17,10 +17,16 @@ data OrderType = Buy | Sell
     deriving (Show, Eq)
 
 data Order c = Order {
-    orderType :: OrderType,
-    timestamp :: Timestamp,
+    orderType   :: OrderType,
+    timestamp   :: Timestamp,
     limitAmount :: c
 } deriving (Show, Eq)
+
+newOrder :: Ord c => OrderType -> Timestamp -> c -> Order c
+newOrder t ts l =
+    Order { orderType   = t,
+            timestamp   = ts,
+            limitAmount = l }
 
 instance Ord c => Ord (Order c) where
     compare ordA ordB =
@@ -40,3 +46,9 @@ addTOrderBook ord ordBook = do
                     ord (bidOrders ordBook)
         Sell -> insertTPriorityQueue
                     ord (askOrders ordBook)
+
+removeTOrderBook :: Ord c => OrderType -> TOrderBook c -> IO (Maybe (Order c))
+removeTOrderBook t ordBook = do
+    atomically $ case t of
+        Buy  -> pollTPriorityQueue $ bidOrders ordBook
+        Sell -> pollTPriorityQueue $ askOrders ordBook

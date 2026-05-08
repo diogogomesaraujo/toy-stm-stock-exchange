@@ -19,6 +19,6 @@ pollTPriorityQueue q = do
     case minView pQueue of
         Just (minV, newPQueue) -> do
             writeTVar q newPQueue
-            return (Just minV)
+            return $ Just minV
         Nothing ->
             return Nothing
