@@ -1,20 +1,23 @@
 -- TODO:
--- - Order book using STM.PriorityQueue
 -- - Prove properties about the order book developed
 --
 -- Inspired by:
 -- - https://medium.com/@thinhnguyen042002/lets-build-a-stock-exchange-from-scratch-18459611ad83
 --
 
-module OrderBook (TOrderBook, addTOrderBook, removeTOrderBook, Order, newOrder) where
+module OrderBook (OrderType, TOrderBook, addTOrderBook, removeTOrderBook, Order, newOrder) where
 
 import TPriorityQueue
 import Control.Concurrent.STM
+import Test.QuickCheck
 
 type Timestamp = Int
 
 data OrderType = Buy | Sell
     deriving (Show, Eq)
+
+instance Arbitrary OrderType where
+    arbitrary = elements [Buy, Sell]
 
 data Order c = Order {
     orderType   :: OrderType,
@@ -33,6 +36,12 @@ instance Ord c => Ord (Order c) where
         compare (limitAmount ordA, timestamp ordA)
                 (limitAmount ordB, timestamp ordB)
 
+instance (Ord c, Arbitrary c) => Arbitrary (Order c) where
+    arbitrary = do
+        ordType <- arbitrary
+        ordTimestamp <- arbitrary
+        ordLimitAmount <- arbitrary
+        return $ newOrder ordType ordTimestamp ordLimitAmount
 
 data TOrderBook c = TOrderBook {
     bidOrders :: TPriorityQueue (Order c),
