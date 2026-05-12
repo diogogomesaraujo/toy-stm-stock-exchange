@@ -5,7 +5,7 @@
 -- - https://medium.com/@thinhnguyen042002/lets-build-a-stock-exchange-from-scratch-18459611ad83
 --
 
-module OrderBook (OrderType, TOrderBook, addTOrderBook, removeTOrderBook, Order, newOrder) where
+module OrderBook (OrderType, TOrderBook, addTOrderBook, removeTOrderBook, Order, newOrder, showTOrderBook) where
 
 import TPriorityQueue
 import Control.Concurrent.STM
@@ -61,3 +61,9 @@ removeTOrderBook t ordBook = do
     atomically $ case t of
         Buy  -> pollTPriorityQueue $ bidOrders ordBook
         Sell -> pollTPriorityQueue $ askOrders ordBook
+
+showTOrderBook :: (Ord c, Show c) => TOrderBook c -> IO String
+showTOrderBook ordBook = do
+    bidOrds <- showTPriorityQueue $ bidOrders ordBook
+    askOrds <- showTPriorityQueue $ askOrders ordBook
+    return $ show (bidOrds, askOrds)
