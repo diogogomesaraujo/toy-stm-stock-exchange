@@ -5,7 +5,14 @@
 -- - https://medium.com/@thinhnguyen042002/lets-build-a-stock-exchange-from-scratch-18459611ad83
 --
 
-module OrderBook (OrderType, TOrderBook, addTOrderBook, removeTOrderBook, Order, newOrder, showTOrderBook) where
+module OrderBook ( OrderType,
+                  TOrderBook,
+                  newTOrderBook,
+                  addTOrderBook,
+                  removeTOrderBook,
+                  Order,
+                  newOrder,
+                  showTOrderBook ) where
 
 import TPriorityQueue
 import Control.Concurrent.STM
@@ -48,21 +55,28 @@ data TOrderBook c = TOrderBook {
     askOrders :: TPriorityQueue (Order c)
 }
 
-addTOrderBook :: Ord c => Order c -> TOrderBook c -> IO ()
+newTOrderBook :: Ord c => STM (TOrderBook c)
+newTOrderBook = do
+    bidOrds <- newTPriorityQueue
+    askOrds <- newTPriorityQueue
+    return $ TOrderBook { bidOrders = bidOrds,
+                          askOrders = askOrds }
+
+addTOrderBook :: Ord c => Order c -> TOrderBook c -> STM ()
 addTOrderBook ord ordBook = do
-    atomically $ case orderType ord of
+    case orderType ord of
         Buy  -> insertTPriorityQueue
                     ord (bidOrders ordBook)
         Sell -> insertTPriorityQueue
                     ord (askOrders ordBook)
 
-removeTOrderBook :: Ord c => OrderType -> TOrderBook c -> IO (Maybe (Order c))
+removeTOrderBook :: Ord c => OrderType -> TOrderBook c -> STM (Maybe (Order c))
 removeTOrderBook t ordBook = do
-    atomically $ case t of
+    case t of
         Buy  -> pollTPriorityQueue $ bidOrders ordBook
         Sell -> pollTPriorityQueue $ askOrders ordBook
 
-showTOrderBook :: (Ord c, Show c) => TOrderBook c -> IO String
+showTOrderBook :: (Ord c, Show c) => TOrderBook c -> STM String
 showTOrderBook ordBook = do
     bidOrds <- showTPriorityQueue $ bidOrders ordBook
     askOrds <- showTPriorityQueue $ askOrders ordBook

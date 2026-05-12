@@ -1,4 +1,8 @@
-module TPriorityQueue(TPriorityQueue, newTPriorityQueue, insertTPriorityQueue, pollTPriorityQueue, showTPriorityQueue) where
+module TPriorityQueue( TPriorityQueue,
+                       newTPriorityQueue,
+                       insertTPriorityQueue,
+                       pollTPriorityQueue,
+                       showTPriorityQueue ) where
 
 import Control.Concurrent.STM
 import Data.PQueue.Min
@@ -23,7 +27,7 @@ pollTPriorityQueue q = do
         Nothing ->
             return Nothing
 
-showTPriorityQueue :: (Ord v, Show v) => TPriorityQueue v -> IO String
+showTPriorityQueue :: (Ord v, Show v) => TPriorityQueue v -> STM String
 showTPriorityQueue q = do
-    pQueue <- atomically $ readTVar q
+    pQueue <- readTVar q
     return $ show (toList pQueue)
