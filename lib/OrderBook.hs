@@ -1,8 +1,8 @@
--- TODO:
--- - Prove properties about the order book developed
 --
--- Inspired by:
--- - https://medium.com/@thinhnguyen042002/lets-build-a-stock-exchange-from-scratch-18459611ad83
+-- Transactional OrderBook a.k.a TOrderBook
+--
+-- References:
+-- https://medium.com/@thinhnguyen042002/lets-build-a-stock-exchange-from-scratch-18459611ad83
 --
 
 module OrderBook ( OrderType,
@@ -26,45 +26,56 @@ data OrderType = Buy | Sell
 instance Arbitrary OrderType where
     arbitrary = elements [Buy, Sell]
 
-data Order c = Order {
+data Header c = Header {
     orderType   :: OrderType,
-    timestamp   :: Timestamp,
     limitAmount :: c
 } deriving (Show, Eq)
 
-newOrder :: Ord c => OrderType -> Timestamp -> c -> Order c
-newOrder t ts l =
-    Order { orderType   = t,
-            timestamp   = ts,
-            limitAmount = l }
+newHeader :: Ord c => OrderType -> c -> Header c
+newHeader t l =
+    Header { orderType   = t,
+             limitAmount = l }
+
+data Order c = Order {
+    header      :: Header c,
+    timestamp   :: Timestamp
+} deriving (Show, Eq)
 
 instance Ord c => Ord (Order c) where
     compare ordA ordB =
-        compare (limitAmount ordA, timestamp ordA)
-                (limitAmount ordB, timestamp ordB)
+        compare (limitAmount $ header ordA, timestamp ordA)
+                (limitAmount $ header ordB, timestamp ordB)
 
-instance (Ord c, Arbitrary c) => Arbitrary (Order c) where
-    arbitrary = do
-        ordType <- arbitrary
-        ordTimestamp <- arbitrary
-        ordLimitAmount <- arbitrary
-        return $ newOrder ordType ordTimestamp ordLimitAmount
+newOrder :: Ord c => Header c -> Timestamp -> Order c
+newOrder h ts =
+    Order { header    = h,
+            timestamp = ts }
 
 data TOrderBook c = TOrderBook {
     bidOrders :: TPriorityQueue (Order c),
-    askOrders :: TPriorityQueue (Order c)
+    askOrders :: TPriorityQueue (Order c),
+    clock     :: TVar (Timestamp)
 }
+
+stamp :: Ord c => TOrderBook c -> Header c -> STM (Order c)
+stamp ordBook h = do
+    ts    <- readTVar $ clock ordBook
+    _     <- writeTVar (clock ordBook) (ts + 1)
+    return $ newOrder h ts
 
 newTOrderBook :: Ord c => STM (TOrderBook c)
 newTOrderBook = do
     bidOrds <- newTPriorityQueue
     askOrds <- newTPriorityQueue
-    return $ TOrderBook { bidOrders = bidOrds,
-                          askOrders = askOrds }
+    clk     <- newTVar 0
+    return   $ TOrderBook { clock     = clk,
+                            bidOrders = bidOrds,
+                            askOrders = askOrds }
 
-addTOrderBook :: Ord c => Order c -> TOrderBook c -> STM ()
-addTOrderBook ord ordBook = do
-    case orderType ord of
+addTOrderBook :: Ord c => Header c -> TOrderBook c -> STM ()
+addTOrderBook hd ordBook = do
+    ord <- stamp ordBook hd
+    case orderType hd of
         Buy  -> insertTPriorityQueue
                     ord (bidOrders ordBook)
         Sell -> insertTPriorityQueue
@@ -80,4 +91,14 @@ showTOrderBook :: (Ord c, Show c) => TOrderBook c -> STM String
 showTOrderBook ordBook = do
     bidOrds <- showTPriorityQueue $ bidOrders ordBook
     askOrds <- showTPriorityQueue $ askOrders ordBook
-    return $ show (bidOrds, askOrds)
+    return   $ show (bidOrds, askOrds)
+
+--
+-- Testing
+--
+
+instance (Ord c, Arbitrary c) => Arbitrary (Header c) where
+    arbitrary = do
+        ordType        <- arbitrary
+        ordLimitAmount <- arbitrary
+        return $ newHeader ordType ordLimitAmount

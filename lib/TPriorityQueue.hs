@@ -23,11 +23,11 @@ pollTPriorityQueue q = do
     case minView pQueue of
         Just (minV, newPQueue) -> do
             writeTVar q newPQueue
-            return $ Just minV
+            return $  Just minV
         Nothing ->
             return Nothing
 
 showTPriorityQueue :: (Ord v, Show v) => TPriorityQueue v -> STM String
 showTPriorityQueue q = do
     pQueue <- readTVar q
-    return $ show (toList pQueue)
+    return $  show (toList pQueue)
