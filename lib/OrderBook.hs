@@ -5,14 +5,14 @@
 -- https://medium.com/@thinhnguyen042002/lets-build-a-stock-exchange-from-scratch-18459611ad83
 --
 
-module OrderBook ( OrderType,
-                  TOrderBook,
-                  newTOrderBook,
-                  addTOrderBook,
-                  removeTOrderBook,
-                  Order,
-                  newOrder,
-                  showTOrderBook ) where
+module OrderBook ( Header,
+                   OrderType,
+                   TOrderBook,
+                   newTOrderBook,
+                   addTOrderBook,
+                   removeTOrderBook,
+                   newOrder,
+                   showTOrderBook ) where
 
 import TPriorityQueue
 import Control.Concurrent.STM
@@ -37,8 +37,8 @@ newHeader t l =
              limitAmount = l }
 
 data Order c = Order {
-    header      :: Header c,
-    timestamp   :: Timestamp
+    header    :: Header c,
+    timestamp :: Timestamp
 } deriving (Show, Eq)
 
 instance Ord c => Ord (Order c) where
