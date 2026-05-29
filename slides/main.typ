@@ -144,14 +144,6 @@
   state.
 ]
 
-#slide(title: "Concurrency in Haskell")[
-  Concurrency primitives are encoded in `Control.Concurrent` using monadic IO properties to enforce strict manipulation of side effects, ensuring that operations such as reading shared state or spawning threads remain predictable:
-
-  ```Haskell
-  forkIO :: IO a -> IO ThreadId
-  ```
-]
-
 #slide(title: "STM Monad")[
   Transactions, in Haskell, are composed using the STM monad, provided by `Control.Concurrent.STM`. A transactional variable of type `TVar` can be atomically mutated and read through sequences of `readTVar` and `writeTVar` operations:
 

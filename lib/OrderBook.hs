@@ -100,9 +100,6 @@ showTOrderBook ordBook = do
 -- Testing
 --
 
-instance Arbitrary Euro where
-    arbitrary = arbitrary `suchThat` (> 0)
-
 
 instance Arbitrary OrderType where
     arbitrary = elements [Buy, Sell]
