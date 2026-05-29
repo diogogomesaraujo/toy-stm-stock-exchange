@@ -12,15 +12,16 @@ module OrderBook ( Header,
                    addTOrderBook,
                    removeTOrderBook,
                    newOrder,
-                   showTOrderBook ) where
+                   showTOrderBook,
+                   propOrdered,
+                   propOrderedN ) where
 
 import TPriorityQueue
 import Control.Concurrent.STM
 import Test.QuickCheck
 import Control.Concurrent
 import Test.QuickCheck.Monadic (run, monadicIO, assert)
-import Control.Monad (replicateM, replicateM_)
-import Data.Maybe (catMaybes)
+import Control.Monad (replicateM)
 
 type Timestamp = Int
 
@@ -99,6 +100,10 @@ showTOrderBook ordBook = do
 -- Testing
 --
 
+instance Arbitrary Euro where
+    arbitrary = arbitrary `suchThat` (> 0)
+
+
 instance Arbitrary OrderType where
     arbitrary = elements [Buy, Sell]
 
@@ -108,18 +113,24 @@ instance (Ord c, Num c, Arbitrary c) => Arbitrary (Header c) where
         ordLimitAmount <- arbitrary `suchThat` (> 0)
         return $ newHeader ordType ordLimitAmount
 
-propOrdered :: Int -> OrderType -> Property
-propOrdered n ordType = monadicIO $ do
+propOrderedN :: Int -> Property
+propOrderedN n = monadicIO $ do
+    ordType <- run $ generate $ arbitrary
     ordBook <- run $ atomically newTOrderBook
-    joins       <- run $ replicateM n $ do
+    handles       <- run $ replicateM n $ do
                 j <- newEmptyMVar
                 _ <- forkIO $ do
                         ord <- generate ((arbitrary :: Gen (Header Int))
-                            `suchThat` (\o -> orderType o == ordType))
-                        _       <- atomically $ addTOrderBook ord ordBook
+                                    `suchThat` (\o -> orderType o == ordType))
+                        _   <- atomically $ addTOrderBook ord ordBook
                         putMVar j ()
                 return j
-    _       <- run $ mapM_ takeMVar joins
+    _       <- run $ mapM_ takeMVar handles
     mins    <- run $ atomically $ replicateM n (removeTOrderBook ordType ordBook)
     assert $ foldl (\acc x -> x && acc) True
         $ zipWith (<) mins (tail mins)
+
+propOrdered :: Property
+propOrdered = monadicIO $ do
+    n <- run $ generate $ arbitrary `suchThat` (> 0)
+    return $ propOrderedN n
